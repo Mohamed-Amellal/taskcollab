@@ -1,0 +1,48 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Go
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go build cache
+/tmp/
+**/tmp/
+
+# Env files
+.env
+.env.*
+
+# Docker
+**/docker-compose.override.yml
+
+# Database
+pgdata/
+
+# GORM/SQLite (if used locally)
+*.db
+*.sqlite
+
+# Misc
+*.local

@@ -1,0 +1,129 @@
+scalar Time
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  createdAt: Time!
+}
+
+type Workspace {
+  id: ID!
+  name: String!
+  owner: User!
+  members: [Membership!]!
+  projects: [Project!]!
+  createdAt: Time!
+}
+
+type Membership {
+  id: ID!
+  user: User!
+  workspace: Workspace!
+  role: MembershipRole!
+}
+
+type Project {
+  id: ID!
+  name: String!
+  workspace: Workspace!
+  createdAt: Time!
+}
+
+type Task {
+  id: ID!
+  title: String!
+  description: String
+  status: TaskStatus!
+  priority: TaskPriority!
+  project: Project!
+  assignedTo: User
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+input RegisterInput {
+  name: String!
+  email: String!
+  password: String!
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+input CreateWorkspaceInput {
+  name: String!
+}
+
+input InviteUserInput {
+  workspaceId: ID!
+  email: String!
+  role: MembershipRole!
+}
+
+input CreateProjectInput {
+  name: String!
+  workspaceId: ID!
+}
+
+input CreateTaskInput {
+  title: String!
+  description: String
+  priority: TaskPriority!
+  projectId: ID!
+  assignedTo: ID
+}
+
+input UpdateTaskStatusInput {
+  taskId: ID!
+  status: TaskStatus!
+}
+
+input AssignTaskInput {
+  taskId: ID!
+  userId: ID!
+}
+
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
+type Query {
+  me: User
+  workspaces: [Workspace!]!
+  workspace(id: ID!): Workspace
+  projects(workspaceId: ID!): [Project!]!
+  tasks(projectId: ID!): [Task!]!
+}
+
+type Mutation {
+  register(input: RegisterInput!): AuthPayload!
+  login(input: LoginInput!): AuthPayload!
+  createWorkspace(input: CreateWorkspaceInput!): Workspace!
+  inviteUserToWorkspace(input: InviteUserInput!): Membership!
+  createProject(input: CreateProjectInput!): Project!
+  createTask(input: CreateTaskInput!): Task!
+  updateTaskStatus(input: UpdateTaskStatusInput!): Task!
+  assignTask(input: AssignTaskInput!): Task!
+}
