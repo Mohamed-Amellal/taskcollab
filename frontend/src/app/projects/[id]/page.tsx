@@ -5,6 +5,11 @@ import { useMutation, useQuery } from "@apollo/client/react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { getToken } from "../../../lib/auth";
+import { ChevronRight, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
 
 const ME_QUERY = gql`
 	query Me {
@@ -166,150 +171,143 @@ export default function ProjectPage() {
 
 	const projectName = taskData?.tasks?.[0]?.project?.name ?? "Project";
 	const tasks: Task[] = taskData?.tasks ?? [];
-	const todoTasks = tasks.filter((task) => task.status === "TODO");
-	const inProgressTasks = tasks.filter(
-		(task) => task.status === "IN_PROGRESS"
-	);
-	const doneTasks = tasks.filter((task) => task.status === "DONE");
+
+	// Helper to get priority color
+	const getPriorityVariant = (p: string) => {
+		switch (p) {
+			case "HIGH": return "danger";
+			case "MEDIUM": return "warning";
+			case "LOW": return "success";
+			default: return "secondary";
+		}
+	};
+
+	const columns = [
+		{ key: "TODO", label: "To Do", items: tasks.filter((t) => t.status === "TODO") },
+		{ key: "IN_PROGRESS", label: "In Progress", items: tasks.filter((t) => t.status === "IN_PROGRESS") },
+		{ key: "DONE", label: "Done", items: tasks.filter((t) => t.status === "DONE") },
+	];
 
 	return (
-		<div className="min-h-screen bg-linear-to-b from-zinc-50 via-white to-zinc-100">
-			<div className="mx-auto max-w-6xl px-6 py-10">
-				<div className="flex flex-wrap items-center justify-between gap-4">
+		<div className="min-h-screen bg-zinc-50/50">
+			<div className="mx-auto max-w-[1400px] px-6 py-10">
+				{/* Header */}
+				<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
 					<div>
-						<a
-							className="text-sm text-zinc-500"
-							href={`/workspaces/${workspaceId}`}
-						>
-							← Back to workspace
-						</a>
-						<h1 className="mt-2 text-3xl font-semibold text-zinc-900">
-							{projectName}
-						</h1>
-						<p className="mt-1 text-sm text-zinc-500">Task board</p>
-					</div>
-					<span className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold uppercase text-zinc-500">
-						Role: {role}
-					</span>
-				</div>
-
-				<div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-					<div className="rounded-2xl border border-zinc-100 bg-white p-5 shadow-sm">
-						<p className="text-xs uppercase tracking-wide text-zinc-400">Todo</p>
-						<p className="mt-2 text-2xl font-semibold text-zinc-900">
-							{todoTasks.length}
-						</p>
-					</div>
-					<div className="rounded-2xl border border-zinc-100 bg-white p-5 shadow-sm">
-						<p className="text-xs uppercase tracking-wide text-zinc-400">
-							In progress
-						</p>
-						<p className="mt-2 text-2xl font-semibold text-zinc-900">
-							{inProgressTasks.length}
-						</p>
-					</div>
-					<div className="rounded-2xl border border-zinc-100 bg-white p-5 shadow-sm">
-						<p className="text-xs uppercase tracking-wide text-zinc-400">Done</p>
-						<p className="mt-2 text-2xl font-semibold text-zinc-900">
-							{doneTasks.length}
-						</p>
-					</div>
-					<div className="rounded-2xl border border-zinc-100 bg-white p-5 shadow-sm">
-						<p className="text-xs uppercase tracking-wide text-zinc-400">Members</p>
-						<p className="mt-2 text-2xl font-semibold text-zinc-900">
-							{members.length}
-						</p>
+						<div className="flex items-center gap-2 text-sm text-zinc-500 mb-2">
+							<a href={`/workspaces/${workspaceId}`} className="hover:text-zinc-900 transition-colors">
+								Workspace
+							</a>
+							<ChevronRight className="h-4 w-4" />
+							<span>Project</span>
+						</div>
+						<div className="flex items-center gap-3">
+							<h1 className="text-3xl font-bold tracking-tight text-zinc-900">
+								{projectName}
+							</h1>
+							<Badge variant="outline">{role}</Badge>
+						</div>
 					</div>
 				</div>
 
-				<div className="mt-10 grid gap-6 lg:grid-cols-[2fr_1fr]">
-					<div className="space-y-6">
-						<div className="grid gap-4 lg:grid-cols-3">
-							{[
-								{ key: "TODO", label: "Todo", items: todoTasks },
-								{
-									key: "IN_PROGRESS",
-									label: "In progress",
-									items: inProgressTasks,
-								},
-								{ key: "DONE", label: "Done", items: doneTasks },
-							].map((column) => (
-								<div
-									key={column.key}
-									className="rounded-2xl border border-zinc-100 bg-white p-5 shadow-sm"
-								>
-									<div className="flex items-center justify-between">
-										<h2 className="text-sm font-semibold text-zinc-900">
-											{column.label}
-										</h2>
-										<span className="text-xs text-zinc-400">
+				<div className="grid gap-6 lg:grid-cols-[3fr_1fr]">
+					{/* Kanban Board */}
+					<div className="grid gap-6 md:grid-cols-3 items-start overflow-x-auto pb-4">
+						{columns.map((column) => (
+							<div key={column.key} className="flex flex-col gap-4 min-w-[280px]">
+								<div className="flex items-center justify-between px-1">
+									<h2 className="font-semibold text-zinc-700 flex items-center gap-2">
+										{column.label}
+										<span className="bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded-full text-xs">
 											{column.items.length}
 										</span>
-									</div>
+									</h2>
+								</div>
+
+								<div className="space-y-3">
 									{loading ? (
-										<p className="mt-4 text-sm text-zinc-500">Loading...</p>
+										<Card className="p-4 flex justify-center">
+											<Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
+										</Card>
 									) : column.items.length === 0 ? (
-										<p className="mt-4 text-xs text-zinc-500">No tasks</p>
+										<div className="border-2 border-dashed border-zinc-100 rounded-xl p-8 text-center text-zinc-400 text-sm">
+											No tasks
+										</div>
 									) : (
-										<div className="mt-4 space-y-3">
-											{column.items.map((task) => {
-												const canUpdateStatus =
-													isAdmin || task.assignedTo?.id === currentUserId;
-												return (
-													<div
-														key={task.id}
-														className="rounded-xl border border-zinc-100 px-4 py-4"
-													>
-														<div className="flex items-start justify-between">
-															<div>
-																<h3 className="text-sm font-semibold text-zinc-900">
-																	{task.title}
-																</h3>
-																{task.description && (
-																	<p className="mt-1 text-xs text-zinc-500">
-																		{task.description}
-																	</p>
+										column.items.map((task) => {
+											const canUpdateStatus = isAdmin || task.assignedTo?.id === currentUserId;
+											return (
+												<Card key={task.id} className="p-4 hover:shadow-md transition-shadow group">
+													<div className="space-y-3">
+														<div className="flex items-start justify-between gap-2">
+															<h3 className="font-medium text-zinc-900 text-sm leading-snug">
+																{task.title}
+															</h3>
+															<Badge variant={getPriorityVariant(task.priority) as any} className="shrink-0 text-[10px] px-1.5 py-0 h-5">
+																{task.priority}
+															</Badge>
+														</div>
+
+														{task.description && (
+															<p className="text-xs text-zinc-500 line-clamp-2">
+																{task.description}
+															</p>
+														)}
+
+														<div className="pt-2 border-t border-zinc-50 flex items-center justify-between gap-2">
+															{/* Assignee */}
+															<div className="flex items-center gap-2 min-w-0">
+																{task.assignedTo ? (
+																	<div className="flex items-center gap-1.5" title={task.assignedTo.name}>
+																		<div className="h-5 w-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">
+																			{task.assignedTo.name.charAt(0)}
+																		</div>
+																		<span className="text-xs text-zinc-600 truncate max-w-[80px]">
+																			{task.assignedTo.name}
+																		</span>
+																	</div>
+																) : (
+																	<span className="text-xs text-zinc-400 italic">Unassigned</span>
 																)}
 															</div>
-															<span className="rounded-full border border-zinc-200 px-2 py-0.5 text-[10px] font-semibold uppercase text-zinc-500">
-																{task.priority}
-															</span>
+
+															{/* Actions (only visible on hover/focus if appropriate usually, but keep simple) */}
+															<div className="opacity-100 transition-opacity flex gap-1">
+																{isAdmin && (
+																	<select
+																		className="w-4 h-4 opacity-0 absolute"
+																		onChange={(e) => handleAssign(task.id, e.target.value)}
+																		value={task.assignedTo?.id ?? ""}
+																	>
+																		<option value="">Assign...</option>
+																		{members.map(m => <option key={m.user.id} value={m.user.id}>{m.user.name}</option>)}
+																	</select>
+																)}
+															</div>
 														</div>
-														<div className="mt-3 flex flex-wrap items-center gap-2">
-															{canUpdateStatus ? (
+
+														{/* Controls row */}
+														<div className="grid grid-cols-2 gap-2 mt-2">
+															{canUpdateStatus && (
 																<select
-																	className="rounded-lg border border-zinc-200 px-2 py-1 text-xs"
+																	className="col-span-2 text-xs border rounded px-1 py-1 bg-zinc-50 border-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
 																	value={task.status}
-																	onChange={(e) =>
-																	handleStatusChange(task.id, e.target.value)
-																}
+																	onChange={(e) => handleStatusChange(task.id, e.target.value)}
 																>
-																	<option value="TODO">Todo</option>
-																	<option value="IN_PROGRESS">In progress</option>
+																	<option value="TODO">To Do</option>
+																	<option value="IN_PROGRESS">In Progress</option>
 																	<option value="DONE">Done</option>
 																</select>
-															) : (
-																<span className="text-[10px] uppercase text-zinc-400">
-																	{task.status}
-																</span>
 															)}
-															<span className="text-xs text-zinc-500">
-																Assignee: {task.assignedTo?.name ?? "Unassigned"}
-															</span>
 															{isAdmin && (
 																<select
-																	className="rounded-lg border border-zinc-200 px-2 py-1 text-xs"
+																	className="col-span-2 text-xs border rounded px-1 py-1 bg-zinc-50 border-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
 																	value={task.assignedTo?.id ?? ""}
-																	onChange={(e) =>
-																	handleAssign(task.id, e.target.value)
-																}
+																	onChange={(e) => handleAssign(task.id, e.target.value)}
 																>
 																	<option value="">Assign...</option>
 																	{members.map((member) => (
-																		<option
-																			key={member.user.id}
-																			value={member.user.id}
-																		>
+																		<option key={member.user.id} value={member.user.id}>
 																			{member.user.name}
 																		</option>
 																	))}
@@ -317,65 +315,104 @@ export default function ProjectPage() {
 															)}
 														</div>
 													</div>
-												);
-											})}
-										</div>
+												</Card>
+											);
+										})
 									)}
 								</div>
-							))}
-						</div>
+							</div>
+						))}
 					</div>
 
-					<div className="rounded-2xl border border-zinc-100 bg-white p-6 shadow-sm">
-						<h2 className="text-lg font-semibold text-zinc-900">New task</h2>
-						<p className="mt-2 text-sm text-zinc-500">
-							Add details and assign the next action.
-						</p>
-						<form className="mt-4 space-y-3" onSubmit={handleCreate}>
-							<input
-								className="w-full rounded-xl border border-zinc-200 px-3 py-2"
-								placeholder="Task title"
-								value={title}
-								onChange={(e) => setTitle(e.target.value)}
-								required
-							/>
-							<textarea
-								className="w-full rounded-xl border border-zinc-200 px-3 py-2"
-								placeholder="Description"
-								value={description}
-								onChange={(e) => setDescription(e.target.value)}
-							/>
-							<select
-								className="w-full rounded-xl border border-zinc-200 px-3 py-2"
-								value={priority}
-								onChange={(e) => setPriority(e.target.value)}
-							>
-								<option value="LOW">Low</option>
-								<option value="MEDIUM">Medium</option>
-								<option value="HIGH">High</option>
-							</select>
-							{isAdmin && (
-								<select
-									className="w-full rounded-xl border border-zinc-200 px-3 py-2"
-									value={assignee}
-									onChange={(e) => setAssignee(e.target.value)}
-								>
-									<option value="">Assign to...</option>
-									{members.map((member) => (
-										<option key={member.user.id} value={member.user.id}>
-											{member.user.name}
-										</option>
-									))}
-								</select>
-							)}
-							<button
-								type="submit"
-								disabled={creating}
-								className="w-full rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
-							>
-								{creating ? "Creating..." : "Create task"}
-							</button>
-						</form>
+					{/* Sidebar - Create Task */}
+					<div className="space-y-6">
+						{isAdmin && (
+							<Card className="sticky top-6">
+								<CardHeader>
+									<CardTitle>Add Task</CardTitle>
+									<CardDescription>
+										Create a new task for this project.
+									</CardDescription>
+								</CardHeader>
+								<CardContent>
+									<form onSubmit={handleCreate} className="space-y-4">
+										<Input
+											placeholder="Task title"
+											value={title}
+											onChange={(e) => setTitle(e.target.value)}
+											required
+										/>
+										<textarea
+											className="flex min-h-[80px] w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+											placeholder="Description (optional)"
+											value={description}
+											onChange={(e) => setDescription(e.target.value)}
+										/>
+										<div className="grid grid-cols-2 gap-3">
+											<div className="space-y-2">
+												<label className="text-xs font-medium text-zinc-700">Priority</label>
+												<select
+													className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zinc-400"
+													value={priority}
+													onChange={(e) => setPriority(e.target.value)}
+												>
+													<option value="LOW">Low</option>
+													<option value="MEDIUM">Medium</option>
+													<option value="HIGH">High</option>
+												</select>
+											</div>
+											{isAdmin && (
+												<div className="space-y-2">
+													<label className="text-xs font-medium text-zinc-700">Assignee</label>
+													<select
+														className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-zinc-400"
+														value={assignee}
+														onChange={(e) => setAssignee(e.target.value)}
+													>
+														<option value="">Unassigned</option>
+														{members.map((member) => (
+															<option key={member.user.id} value={member.user.id}>
+																{member.user.name}
+															</option>
+														))}
+													</select>
+												</div>
+											)}
+										</div>
+										<Button
+											type="submit"
+											className="w-full"
+											isLoading={creating}
+										>
+											Create Task
+										</Button>
+									</form>
+								</CardContent>
+							</Card>
+						)}
+
+						{/* Stats/Info Card */}
+						<Card>
+							<CardHeader>
+								<CardTitle className="text-sm">Project Stats</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<div className="space-y-2">
+									<div className="flex justify-between text-sm">
+										<span className="text-zinc-500">Total Tasks</span>
+										<span className="font-medium">{tasks.length}</span>
+									</div>
+									<div className="flex justify-between text-sm">
+										<span className="text-zinc-500">Completed</span>
+										<span className="font-medium">{tasks.filter(t => t.status === 'DONE').length}</span>
+									</div>
+									<div className="flex justify-between text-sm">
+										<span className="text-zinc-500">Members</span>
+										<span className="font-medium">{members.length}</span>
+									</div>
+								</div>
+							</CardContent>
+						</Card>
 					</div>
 				</div>
 			</div>

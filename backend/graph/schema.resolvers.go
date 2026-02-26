@@ -26,6 +26,10 @@ func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInp
 		return nil, fmt.Errorf("name, email, and password are required")
 	}
 
+	if len(input.Password) < 8 {
+		return nil, fmt.Errorf("password must be at least 8 characters")
+	}
+
 	var existing models.User
 	if err := r.DB.First(&existing, "email = ?", strings.ToLower(input.Email)).Error; err == nil {
 		return nil, fmt.Errorf("email already in use")
@@ -85,6 +89,7 @@ func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*
 }
 
 // CreateWorkspace is the resolver for the createWorkspace field.
+// CreateWorkspace is the resolver for the createWorkspace field.
 func (r *mutationResolver) CreateWorkspace(ctx context.Context, input model.CreateWorkspaceInput) (*model.Workspace, error) {
 	user, err := requireUser(ctx)
 	if err != nil {
@@ -96,17 +101,25 @@ func (r *mutationResolver) CreateWorkspace(ctx context.Context, input model.Crea
 		OwnerID: user.ID,
 	}
 
-	if err := r.DB.Create(&workspace).Error; err != nil {
-		return nil, fmt.Errorf("failed to create workspace")
-	}
+	err = r.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&workspace).Error; err != nil {
+			return fmt.Errorf("failed to create workspace")
+		}
 
-	membership := models.Membership{
-		UserID:      user.ID,
-		WorkspaceID: workspace.ID,
-		Role:        string(model.MembershipRoleOwner),
-	}
-	if err := r.DB.Create(&membership).Error; err != nil {
-		return nil, fmt.Errorf("failed to create membership")
+		membership := models.Membership{
+			UserID:      user.ID,
+			WorkspaceID: workspace.ID,
+			Role:        string(model.MembershipRoleOwner),
+		}
+		if err := tx.Create(&membership).Error; err != nil {
+			return fmt.Errorf("failed to create membership")
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	if err := r.DB.Preload("Owner").Preload("Members.User").Preload("Projects").First(&workspace, "id = ?", workspace.ID).Error; err != nil {
@@ -214,8 +227,12 @@ func (r *mutationResolver) CreateTask(ctx context.Context, input model.CreateTas
 		return nil, fmt.Errorf("project not found")
 	}
 
-	if _, err := getMembershipRole(user.ID, project.WorkspaceID, r.DB); err != nil {
+	role, err := getMembershipRole(user.ID, project.WorkspaceID, r.DB)
+	if err != nil {
 		return nil, err
+	}
+	if role != model.MembershipRoleAdmin && role != model.MembershipRoleOwner {
+		return nil, fmt.Errorf("only admins and owners can create tasks")
 	}
 
 	var assignedTo *uuid.UUID

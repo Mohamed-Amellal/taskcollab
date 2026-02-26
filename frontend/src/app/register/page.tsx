@@ -30,6 +30,12 @@ export default function RegisterPage() {
 	const handleSubmit = async (event: React.FormEvent) => {
 		event.preventDefault();
 		setError(null);
+
+		if (password.length < 8) {
+			setError("Password must be at least 8 characters");
+			return;
+		}
+
 		try {
 			const { data } = await register({
 				variables: { input: { name, email, password } },

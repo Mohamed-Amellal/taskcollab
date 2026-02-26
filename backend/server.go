@@ -5,7 +5,7 @@ import (
 	"os"
 	"task-api/db"
 	"task-api/graph"
-	middleware "task-api/middlware"
+	"task-api/middleware"
 	"task-api/newhttp"
 
 	"github.com/gin-contrib/cors"
